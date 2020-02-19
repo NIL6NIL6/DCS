@@ -1,0 +1,417 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>DCS - 1</title>
+
+    <!--- Math.js library, for matrix manipulation, and many other things--->
+    <script src="math.min.js"></script>
+</head>
+
+<body>
+
+<h1>DCS - 1. Affine transformations</h1>
+
+<canvas id="canvas1" height="600" width="400" class="bezier"  style="border:1px solid #d3d3d3;"></canvas>
+<canvas id="canvas2" height="600" width="800" class="bezier"  style="border:1px solid #d3d3d3;"></canvas>
+<br>
+<button type="button" onclick="doReset()">Reset</button>
+<!--
+<button type="button" onclick="doScaling()">(Example) Scale by 0.5</button>
+-->
+<br/>
+
+<!-- PART 1 -->
+
+<!-- TRANSLATING -->
+<button type="button" onclick="doParametrizedTranslation()">Translate</button>
+<span>x: </span>
+<input type="text" id="translate_x" name="translate_x" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+<span>y: </span>
+<input type="text" id="translate_y" name="translate_y" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+<br/>
+<!-- ROTATING -->
+<button type="button" onclick="doParametrizedRotation()">Rotate</button>
+<span>angle: </span>
+<input type="text" id="rotate_angle" name="rotate_angle" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+<br/>
+<!-- SCALING -->
+<button type="button" onclick="doParametrizedScaling()">Scale </button>
+<span>x: </span>
+<input type="text" id="scale_x" name="scale_x" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
+<span>y: </span>
+<input type="text" id="scale_y" name="scale_y" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
+<br/>
+<!-- REFLECT X AXIS -->
+<button type="button" onclick="doReflectionXAxis()">Reflect X Axis</button>
+<br/>
+
+<!-- PART 2 -->
+
+<!-- TRANSLATE THEN ROTATE -->
+<button type="button" onclick="doParametrizedTranslationAndRotation()">Translate -> Rotate</button>
+<span>x: </span>
+<input type="text" id="translate_rotate_x" name="translate_rotate_x" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+<span>y: </span>
+<input type="text" id="translate_rotate_y" name="translate_rotate_y" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+<span>angle: </span>
+<input type="text" id="translate_rotate_angle" name="translate_rotate_angle" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+<br/>
+<!-- ROTATE THEN TRANSLATE -->
+<button type="button" onclick="doParametrizedRotationAndTranslation()">Rotate -> Translate</button>
+<span>x: </span>
+<input type="text" id="rotate_translate_x" name="rotate_translate_x" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+<span>y: </span>
+<input type="text" id="rotate_translate_y" name="rotate_translate_y" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+<span>angle: </span>
+<input type="text" id="rotate_translate_angle" name="rotate_translate_angle" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+<br/>
+<!-- REFLECT LINE -->
+<button type="button" onclick="doLineReflection()">Reflect Line</button>
+<br/>
+
+<!-- PART 3 -->
+
+<!-- PARALLEL PROJECTION -->
+<button type="button" onclick="doParallelProjection()">Parallel Projection</button>
+<br/>
+<!-- CENTRAL PROJECTION -->
+<button type="button" onclick="doCentralProjection()">Central Projection</button>
+<br/>
+
+<script type="text/javascript">
+
+    /*
+    * Part of this code is based on:
+        * http://blogs.sitepoint.com/html5-canvas-draw-quadratic-curves/
+        * http://blogs.sitepoint.com/html5-canvas-draw-bezier-curves/
+    */
+
+    var canvas1, canvas2, context1, context2, points, myTransformation, style, drag = null, draggedPoint;
+
+    points = [{ x:-150, y:-200 },{ x:-150, y:-150 },{ x:-50, y:-150 }, { x:-50, y:200 }, { x:0, y:200 },
+        { x:0, y:-150 },{ x:100, y:-150 },{ x:100, y:-250 },{ x:-100, y:-250 },{ x:-150, y:-200 }];
+
+    function init() {
+
+        myTransformation = function(p){return p}; //Identity transform
+
+        // default styles
+        style = {
+            curve:	{ width: 6, color: "#333" },
+            line:	{ width: 1, color: "#C00" },
+            point: { radius: 10, width: 2, color: "#900", fill: "rgba(200,200,200,0.5)", arc1: 0, arc2: 2 * Math.PI }
+        }
+
+        // line style defaults
+        context1.lineCap = "round";
+        context1.lineJoin = "round";
+
+        context2.lineCap = "round";
+        context2.lineJoin = "round";
+
+        // Translate origin to center of canvas
+        context1.translate(canvas1.width/2,canvas1.height/2);
+        context2.translate(canvas2.width/2,canvas2.height/2);
+
+        // event handlers (only canvas1)
+        canvas1.onmousedown = dragStart;
+        canvas1.onmousemove = dragging;
+        canvas1.onmouseup = canvas1.onmouseout = dragEnd;
+
+        drawCanvas();
+    }
+
+
+    /**
+     Basic drawing methods
+     **/
+
+
+    // draw canvas
+    function drawCanvas() {
+        // Clear everything
+        context1.clearRect(-canvas1.width/2, -canvas1.height/2, canvas1.width, canvas1.height);  // Clear canvas
+        context2.clearRect(-canvas2.width/2, -canvas2.height/2, canvas2.width, canvas2.height);  // Clear canvas
+
+        // Background grids
+        drawGrid(context1,canvas1.width, canvas1.height); // Draw background grid
+        drawGrid(context2,canvas2.width, canvas2.height); // Draw background grid
+
+        // Original points and vertices
+        drawCurve(context1, style, points); // Draw curve
+        drawVertices(context1, style, points); // Draw vertices as circles
+
+        // Transformed points
+        drawCurve(context2, style, points, myTransformation); // Draw curve transformed
+    }
+
+
+    // Draw a background grid
+    function drawGrid(myContext,bw,bh){
+        var delta = 50; // grid cell size
+
+        var half_width = bw/2;
+        var half_height = bh/2;
+        for (var x = -half_width; x <= half_width; x += delta) {
+            myContext.moveTo(x, -half_height);
+            myContext.lineTo(x, half_height);
+        }
+
+        for (var y = -half_height; y <= half_height; y += delta) {
+            myContext.moveTo(-half_width, y);
+            myContext.lineTo(half_width , y);
+        }
+
+        myContext.lineWidth = 1;
+        myContext.strokeStyle = "lightgray";
+        myContext.stroke();
+
+        myContext.fillStyle = "black";
+        myContext.font = "12px Arial";
+        myContext.fillText("(0,0)",2,12);
+
+    }
+
+    // Draws a polygonal curve connecting the points, after applying the given transformation
+    function drawCurve(ctx, style, points, transformation) {
+        // The transformation is optional. If none provided, use identity transform
+        if (transformation===undefined) {
+            transformation = function(p){return p}; //Identity transform
+        }
+
+        // Draw curve
+        ctx.lineWidth = style.curve.width;
+        ctx.strokeStyle = style.curve.color;
+        ctx.beginPath();
+        var firstPoint = transformation(points[0]);
+        var currentPoint;
+        ctx.moveTo(firstPoint.x, firstPoint.y);
+        for (var i = 0; i < points.length; i++) {
+            currentPoint =  transformation(points[i]);
+            ctx.lineTo(currentPoint.x, currentPoint.y);
+            ctx.moveTo(currentPoint.x, currentPoint.y);
+        }
+        ctx.stroke();
+    }
+
+    // Draw circles around vertices to facilitate drag and drop
+    function drawVertices (ctx, style, points) {
+        for (var i = 0; i < points.length; i++) {
+            var p = points[i];
+            ctx.lineWidth = style.point.width;
+            ctx.strokeStyle = style.point.color;
+            ctx.fillStyle = style.point.fill;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, style.point.radius, style.point.arc1, style.point.arc2, true);
+            ctx.fill();
+            ctx.stroke();
+        }
+    }
+
+
+    /**
+     Methods to allow dragging transformedPoints around
+     **/
+
+    // start dragging
+    function dragStart(e) {
+        e = mousePos(e);
+        // Reverse translation to canvas1
+        var pos = fromCanvasToPointSpace(e);
+        var dx, dy;
+        for (var i=0; i<points.length;i++) {
+            dx = points[i].x - pos.x;
+            dy = points[i].y - pos.y;
+            if ((dx * dx) + (dy * dy) < style.point.radius * style.point.radius) {
+                drag = i;
+                draggedPoint = pos;
+                canvas1.style.cursor = "move";
+                return;
+            }
+        }
+    }
+
+    // dragging
+    function dragging(e) {
+        if (drag!=null) {
+            e = mousePos(e);
+            // Reverse translation to canvas1
+            var pos = fromCanvasToPointSpace(e);
+            points[drag].x += pos.x - draggedPoint.x;
+            points[drag].y += pos.y - draggedPoint.y;
+            draggedPoint = pos;
+            drawCanvas();
+        }
+    }
+
+    // end dragging
+    function dragEnd(e) {
+        drag = null;
+        canvas1.style.cursor = "default";
+        drawCanvas();
+    }
+
+    // event parser
+    function mousePos(event) {
+        event = (event ? event : window.event);
+        return {
+            x: event.pageX - canvas1.offsetLeft,
+            y: event.pageY - canvas1.offsetTop
+        }
+    }
+
+    // Transforms the coordinates of a point in canvas1 to one in the space of points
+    function fromCanvasToPointSpace(canvasPoint) {
+        return {x: canvasPoint.x - canvas1.width/2 , y: canvasPoint.y - canvas1.height/2};
+    }
+
+    /**
+     * Start ("main method")
+     */
+
+    // Assign canvas and context variables
+    canvas1 = document.getElementById("canvas1");
+    context1 = canvas1.getContext("2d");
+    canvas2 = document.getElementById("canvas2");
+    context2 = canvas2.getContext("2d");
+
+    init();
+
+    /**
+     * Auxiliary functions
+     */
+
+    var scalingFunction = function (point) {
+        var matrix = math.matrix([[0.5, 0], [0, 0.5]]); //2x2 scaling matrix (for 0.5)
+        var pointAsArray = [point.x, point.y];
+        var result = math.multiply(matrix,pointAsArray); // result is a matrix!
+        var transformedPoint = {x: result.get([0]), y: result.get([1])};
+        return transformedPoint;
+    }
+
+    var floatRegExp = RegExp('^[+-]?([0-9]*\.[0-9]+|[0-9]+)$');
+
+    // When given a point, apply transformations according to parameters
+
+    function parametrizedTranslationFunction(translate_x, translate_y) {
+        return point => {
+            var x_pos = parseFloat(point.x) + parseFloat(translate_x);
+            var y_pos = parseFloat(point.y) + parseFloat(translate_y);
+            var transformedPoint = {x: x_pos, y: y_pos};
+            return transformedPoint;
+        };
+    }
+
+    function parametrizedRotationFunction(angle) {
+        angle = angle * math.PI / 180;
+        return point => {
+            var matrix = math.matrix([[math.cos(angle), -math.sin(angle)],[math.sin(angle), math.cos(angle)]]);
+            var pointAsArray = [point.x, point.y];
+            var result = math.multiply(matrix, pointAsArray);
+            var transformedPoint = {x: result.get([0]), y: result.get([1])};
+            return transformedPoint;
+        };
+    }
+
+    function parametrizedScalingFunction(scale_x, scale_y) {
+        return point => {
+            var matrix = math.matrix([[scale_x, 0],[0, scale_y]]);
+            var pointAsArray = [point.x, point.y];
+            var result = math.multiply(matrix, pointAsArray);
+            var transformedPoint = {x: result.get([0]), y: result.get([1])};
+            return transformedPoint;
+        };
+    }
+
+    // Interface with HTML
+
+    function getAndTestInput(regex, inputArray) {
+        var data = []
+        var correct = true;
+        for (let i = 0; i < inputArray.length; i++) {
+            var x = document.getElementById(inputArray[i]).value;
+            if (! regex.test(x)) {
+                document.getElementById(inputArray[i]).color = "red";
+                correct = false;
+            }
+            else document.getElementById(inputArray[i]).color = "black";
+            data.push(x);
+        }
+        return {data: data, correct: correct}
+    }
+
+    const compose = (...functions) => args => functions.reduceRight((arg, fn) => fn(arg), args);
+
+    function doReset () {
+        myTransformation = function(p){return p}; //Identity transform
+        drawCanvas();
+    }
+
+    // This is just an example
+    function doScaling() {
+        myTransformation = scalingFunction;
+        drawCanvas();
+    }
+
+    //************************************* PART 1 *********************************************
+
+    function doParametrizedTranslation() {
+        var input = getAndTestInput(floatRegExp, ["translate_x", "translate_y"]);
+        if (input.correct) {
+            var translate_x = input.data[0];
+            var translate_y = input.data[1];
+            myTransformation = parametrizedTranslationFunction(translate_x, translate_y);
+        }
+        drawCanvas();
+    }
+
+    function doParametrizedRotation() {
+        var input = getAndTestInput(floatRegExp, ["rotate_angle"]);
+        if (input.correct) {
+            var angle = input.data[0];
+            myTransformation = parametrizedRotationFunction(angle);
+        }
+        drawCanvas();
+    }
+
+    function doParametrizedScaling() {
+        var input = getAndTestInput(floatRegExp, ["scale_x, scale_y"]);
+        if (input.correct) {
+            var scale_x = input.data[0];
+            var scale_y = input.data[1];
+            myTransformation = parametrizedScalingFunction(scale_x, scale_y);
+        }
+        drawCanvas();
+    }
+
+    //************************************* PART 2 *********************************************
+
+    function doParametrizedTranslationAndRotation() {
+        var input = getAndTestInput(floatRegExp, ["translate_rotate_x", "translate_rotate_y", "translate_rotate_angle"]);
+        if (input.correct) {
+            var translate_x = input.data[0];
+            var translate_y = input.data[1];
+            var angle = input.data[2];
+            myTransformation = compose(parametrizedRotationFunction(angle), parametrizedTranslationFunction(translate_x, translate_y));
+        }
+        drawCanvas();
+    }
+
+    function doParametrizedRotationAndTranslation() {
+        var input = getAndTestInput(floatRegExp, ["rotate_translate_x", "rotate_translate_y", "rotate_translate_angle"]);
+        if (input.correct) {
+            var translate_x = input.data[0];
+            var translate_y = input.data[1];
+            var angle = input.data[2];
+            myTransformation = compose(parametrizedTranslationFunction(translate_x, translate_y), parametrizedRotationFunction(angle));
+        }
+        drawCanvas();
+    }
+
+    //************************************* PART 3 *********************************************
+
+</script>
+</body>
+</html>
