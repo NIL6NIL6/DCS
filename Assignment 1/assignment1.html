@@ -22,34 +22,92 @@
 -->
 <br/>
 
-<!-- PART 1 -->
+<!-- TRANSFORM -->
+
+<button type="button" onclick="doTransform()">Transform</button>
+
+<!-- TRANSLATE -->
+
+<input type="radio" id="transform_translate" name="transform" checked="checked"/>
+<label>Translate</label>
+
+<!-- ROTATE -->
+
+<input type="radio" id="transform_rotate" name="transform"/>
+<label>Rotate</label>
+
+<!-- SCALE -->
+
+<input type="radio" id="transform_scale" name="transform"/>
+<label>Scale</label>
+
+<br/>
+
+<!-- TRANSLATE ROTATE -->
+
+<input type="radio" id="transform_translate_rotate" name="transform"/>
+<label>Translate -> Rotate</label>
+
+<!-- ROTATE TRANSLATE -->
+
+<input type="radio" id="transform_rotate_translate" name="transform"/>
+<label>Rotate -> Translate</label>
+
+<br/>
+
+<!-- INPUTS -->
+
+<div id="values" name="values">
+	<label>x:</label>
+	<input type="text" id="x_value" name="x_value" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+	<label>y:</label>
+	<input type="text" id="y_value" name="y_value" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+</div>
+
+<div id="angle" name="angle">
+	<label>angle:</label>
+	<input type="range" min="0.0" max="360.0" value="0.0" class="slider" id="rotate_angle">
+	<span id="rotate_angle_display"></span>
+</div>
+
+
 
 <!-- TRANSLATING -->
+<!--
 <button type="button" onclick="doParametrizedTranslation()">Translate</button>
 <span>x: </span>
 <input type="text" id="translate_x" name="translate_x" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
 <span>y: </span>
 <input type="text" id="translate_y" name="translate_y" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
 <br/>
+-->
+
 <!-- ROTATING -->
+<!--
 <button type="button" onclick="doParametrizedRotation()">Rotate</button>
 <span>angle: </span>
+-->
+<!--
 <input type="text" id="rotate_angle" name="rotate_angle" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+-->
+<!--
+<input type="range" min="0.0" max="360.0" value="0.0" class="slider" id="rotate_angle">
+<span id="rotate_angle_display"></span>
 <br/>
+-->
+
 <!-- SCALING -->
+<!--
 <button type="button" onclick="doParametrizedScaling()">Scale </button>
 <span>x: </span>
 <input type="text" id="scale_x" name="scale_x" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
 <span>y: </span>
 <input type="text" id="scale_y" name="scale_y" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
 <br/>
-<!-- REFLECT X AXIS -->
-<button type="button" onclick="doReflectionXAxis()">Reflect X Axis</button>
-<br/>
-
-<!-- PART 2 -->
+-->
 
 <!-- TRANSLATE THEN ROTATE -->
+<!--
 <button type="button" onclick="doParametrizedTranslationAndRotation()">Translate -> Rotate</button>
 <span>x: </span>
 <input type="text" id="translate_rotate_x" name="translate_rotate_x" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
@@ -58,7 +116,10 @@
 <span>angle: </span>
 <input type="text" id="translate_rotate_angle" name="translate_rotate_angle" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
 <br/>
+-->
+
 <!-- ROTATE THEN TRANSLATE -->
+<!--
 <button type="button" onclick="doParametrizedRotationAndTranslation()">Rotate -> Translate</button>
 <span>x: </span>
 <input type="text" id="rotate_translate_x" name="rotate_translate_x" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
@@ -67,17 +128,30 @@
 <span>angle: </span>
 <input type="text" id="rotate_translate_angle" name="rotate_translate_angle" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
 <br/>
+-->
+
+<!-- REFLECT -->
+
+<button type="button" onclick="doReflection()">Reflect</button>
+
+<!-- REFLECT X AXIS -->
+<input type="radio" id="reflect_xaxis" name="reflect" checked="checked">
+<label>Reflect X Axis</label>
+
 <!-- REFLECT LINE -->
-<button type="button" onclick="doLineReflection()">Reflect Line</button>
+<input type="radio" id="reflect_line" name="reflect">
+<label>Reflect Line</label>
 <br/>
 
-<!-- PART 3 -->
+<!-- PROJECT -->
+<button type="button" onclick="doProjection()">Project</button>
 
 <!-- PARALLEL PROJECTION -->
-<button type="button" onclick="doParallelProjection()">Parallel Projection</button>
-<br/>
+<input type="radio" id="project_parallel" name="project" checked="checked">
+<label>Parallel Projection</label>
 <!-- CENTRAL PROJECTION -->
-<button type="button" onclick="doCentralProjection()">Central Projection</button>
+<input type="radio" id="project_central" name="project">
+<label>Central Projection</label>
 <br/>
 
 <script type="text/javascript">
@@ -103,6 +177,12 @@
             line:	{ width: 1, color: "#C00" },
             point: { radius: 10, width: 2, color: "#900", fill: "rgba(200,200,200,0.5)", arc1: 0, arc2: 2 * Math.PI }
         }
+        
+        line_style = {
+			curve: { width: 6, color: "#00C" },
+			line: { width: 1, color: "#00F" },
+			point: { radius: 10, width: 2, color: "#090", fill: "rgba(200,200,200,0.5)", arc1: 0, arc2: 2 * Math.PI }
+		}
 
         // line style defaults
         context1.lineCap = "round";
@@ -290,6 +370,15 @@
         var transformedPoint = {x: result.get([0]), y: result.get([1])};
         return transformedPoint;
     }
+    
+    //When sliding the angle, update it
+    var slider = document.getElementById("rotate_angle");
+    var slider_display = document.getElementById("rotate_angle_display");
+    slider_display.innerHTML = slider.value;
+    
+    slider.oninput = function() {
+		slider_display.innerHTML = slider.value;
+	};
 
     var floatRegExp = RegExp('^[+-]?([0-9]*\.[0-9]+|[0-9]+)$');
 
@@ -324,6 +413,11 @@
             return transformedPoint;
         };
     }
+    
+    var reflectionXAxisFunction = function(point) {
+		var transformedPoint = {x: point.x, y: -point.y}
+		return transformedPoint;
+	}
 
     // Interface with HTML
 
@@ -377,7 +471,7 @@
     }
 
     function doParametrizedScaling() {
-        var input = getAndTestInput(floatRegExp, ["scale_x, scale_y"]);
+        var input = getAndTestInput(floatRegExp, ["scale_x", "scale_y"]);
         if (input.correct) {
             var scale_x = input.data[0];
             var scale_y = input.data[1];
@@ -385,6 +479,18 @@
         }
         drawCanvas();
     }
+    
+    function doReflection() {
+		var checkRadio = document.querySelector('input[name="reflect"]:checked');
+		console.log(checkRadio.id);
+		if (checkRadio == null) return;
+		if (checkRadio.id == "reflect_line") {
+			myTransformation = reflectionLineFunction;
+		} else if (checkRadio.id == "reflect_xaxis") {
+			myTransformation = reflectionXAxisFunction;
+		}
+		drawCanvas();
+	}
 
     //************************************* PART 2 *********************************************
 
