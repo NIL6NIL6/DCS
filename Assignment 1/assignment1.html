@@ -59,14 +59,14 @@
 
 <div id="values" name="values">
 	<label>x:</label>
-	<input type="text" id="x_value" name="x_value" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+	<input type="text" id="x_value" name="x_value" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
 	<label>y:</label>
-	<input type="text" id="y_value" name="y_value" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.0"/>
+	<input type="text" id="y_value" name="y_value" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
 </div>
 
-<div id="angle" name="angle">
+<div id="angle" name="angle" hidden="hidden">
 	<label>angle:</label>
-	<input type="range" min="0.0" max="360.0" value="0.0" class="slider" id="rotate_angle">
+	<input type="range" min="0.0" max="360.0" value="90.0" class="slider" id="rotate_angle">
 	<span id="rotate_angle_display"></span>
 </div>
 
@@ -380,6 +380,45 @@
 		slider_display.innerHTML = slider.value;
 	};
 
+    //When a radio button is selected
+    var radio_translate = document.getElementById("transform_translate");
+    var radio_rotate = document.getElementById("transform_rotate");
+    var radio_scale = document.getElementById("transform_scale");
+    var radio_translate_rotate = document.getElementById("transform_translate_rotate");
+    var radio_rotate_translate = document.getElementById("transform_rotate_translate");
+    var radio_selected = "translate";
+
+    radio_translate.onchange = function() {
+        radio_selected = "translate";
+        document.getElementById("values").removeAttribute("hidden");
+        document.getElementById("angle").hidden = "hidden";
+    };
+
+    radio_rotate.onchange = function() {
+        radio_selected = "rotate";
+        document.getElementById("angle").removeAttribute("hidden");
+        document.getElementById("values").hidden = "hidden";
+    };
+
+    radio_scale.onchange = function() {
+        radio_selected = "scale";
+        document.getElementById("values").removeAttribute("hidden");
+        document.getElementById("angle").hidden = "hidden";
+    };
+
+    radio_translate_rotate.onchange = function() {
+        radio_selected = "translate_rotate";
+        document.getElementById("values").removeAttribute("hidden");
+        document.getElementById("angle").removeAttribute("hidden");
+    };
+
+    radio_rotate_translate.onchange = function() {
+        radio_selected = "rotate_translate";
+        document.getElementById("values").removeAttribute("hidden");
+        document.getElementById("angle").removeAttribute("hidden");
+    };
+
+    //Regular Expression to recognize floats
     var floatRegExp = RegExp('^[+-]?([0-9]*\.[0-9]+|[0-9]+)$');
 
     // When given a point, apply transformations according to parameters
@@ -449,10 +488,21 @@
         drawCanvas();
     }
 
+    // Transform button
+    function doTransform() {
+        switch(radio_selected) {
+            case "translate": doParametrizedTranslation(); break;
+            case "rotate": doParametrizedRotation(); break;
+            case "scale": doParametrizedScaling(); break;
+            case "translate_rotate": doParametrizedTranslationAndRotation(); break;
+            case "rotate_translate": doParametrizedRotationAndTranslation();
+        }
+    }
+
     //************************************* PART 1 *********************************************
 
     function doParametrizedTranslation() {
-        var input = getAndTestInput(floatRegExp, ["translate_x", "translate_y"]);
+        var input = getAndTestInput(floatRegExp, ["x_value", "y_value"]);
         if (input.correct) {
             var translate_x = input.data[0];
             var translate_y = input.data[1];
@@ -471,7 +521,7 @@
     }
 
     function doParametrizedScaling() {
-        var input = getAndTestInput(floatRegExp, ["scale_x", "scale_y"]);
+        var input = getAndTestInput(floatRegExp, ["x_value", "y_value"]);
         if (input.correct) {
             var scale_x = input.data[0];
             var scale_y = input.data[1];
@@ -495,7 +545,7 @@
     //************************************* PART 2 *********************************************
 
     function doParametrizedTranslationAndRotation() {
-        var input = getAndTestInput(floatRegExp, ["translate_rotate_x", "translate_rotate_y", "translate_rotate_angle"]);
+        var input = getAndTestInput(floatRegExp, ["x_value", "y_value", "rotate_angle"]);
         if (input.correct) {
             var translate_x = input.data[0];
             var translate_y = input.data[1];
@@ -506,7 +556,7 @@
     }
 
     function doParametrizedRotationAndTranslation() {
-        var input = getAndTestInput(floatRegExp, ["rotate_translate_x", "rotate_translate_y", "rotate_translate_angle"]);
+        var input = getAndTestInput(floatRegExp, ["x_value", "y_value", "rotate_angle"]);
         if (input.correct) {
             var translate_x = input.data[0];
             var translate_y = input.data[1];
