@@ -20,6 +20,8 @@
 <!--
 <button type="button" onclick="doScaling()">(Example) Scale by 0.5</button>
 -->
+<input type="checkbox" id="show_lines"/>
+<label>Show transform lines</label>
 <br/>
 
 <!-- TRANSFORM -->
@@ -192,7 +194,7 @@
         * http://blogs.sitepoint.com/html5-canvas-draw-bezier-curves/
     */
 
-    var canvas1, canvas2, context1, context2, points, myTransformation, style, drag = null, draggedPoint, tolerance = 0.001;
+    var canvas1, canvas2, context1, context2, points, myTransformation, style, drag = null, draggedPoint, tolerance = 0.001, transform_lines = false;
 
     points = [{ x:-150, y:-200 },{ x:-150, y:-150 },{ x:-50, y:-150 }, { x:-50, y:200 }, { x:0, y:200 },
         { x:0, y:-150 },{ x:100, y:-150 },{ x:100, y:-250 },{ x:-100, y:-250 },{ x:-150, y:-200 }];
@@ -268,6 +270,12 @@
         drawVertices(context1, style, points); // Draw vertices as circles
 
         // Transformed points
+        if (document.getElementById("show_lines").checked) {
+            drawCurve(context2, line_style, points, function(point) { return point; });
+            for (var i = 0; i < points.length; i++) {
+                drawSegment(context2, points[i], myTransformation(points[i]));
+            }
+        }
         drawCurve(context2, style, points, myTransformation); // Draw curve transformed
     }
 
@@ -424,7 +432,7 @@
     function lineIntersection(line1, line2) {
         var norm_a1 = line1.a % 360;
         var norm_a2 = line2.a % 360;
-        if ((Math.max(norm_a1, norm_a2) - Math.min(norm_a1, norm_a2)) < tolerance) return undefined;
+        if ((Math.max(norm_a1, norm_a2) - Math.min(norm_a1, norm_a2)) < tolerance) return undefined; //Check if parallel or coincident
         var u1 = Math.cos(line1.a);
         var v1 = Math.cos(line2.a);
         var u2 = Math.sin(line1.a);
@@ -848,6 +856,12 @@
         var transformedPoint = lineIntersection(projection_line, {x:point.x, y:point.y, a:alpha});
         return transformedPoint;
     }
+    
+    //************************************* PART 4 **********************************************
+    
+    //Parallel projection preserves affine combinations, because if you were to translate the points, the projection would translate by that much.
+    //Central projection would change the size
+    
 
 </script>
 </body>
