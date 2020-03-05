@@ -403,7 +403,7 @@
         context.moveTo(origin.x, origin.y);
         context.lineTo(end.x, end.y);
         context.lineWidth = 5;
-        context.strokeStyle = 'rgb(0,87,43)';
+        context.strokeStyle = 'rgb(182,0,83)';
         context.stroke();
     }
 
@@ -598,7 +598,6 @@
     project_line_y.onchange = function() {
         var input = getAndTestInput(floatRegExp, ["y_projected"]);
         if (input.correct) projection_line.y = input.data[0];
-        console.log(projection_line);
         drawCanvas();
     };
 
@@ -859,9 +858,10 @@
     
     //************************************* PART 4 **********************************************
     
-    //Parallel projection preserves affine combinations, because if you were to translate the points, the projection would translate by that much.
-    //Central projection would change the size
-    
+    //When aligning 3 points, setting one exactly in the midpoint of the other two, and applying both projections
+    //You can see that in parallel projection, the points are still separated by the same length, but in central 
+    //projection they are not. This means that parallel projection will preserve affine combinations while central
+    //projection won't
 
 </script>
 </body>
