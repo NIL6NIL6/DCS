@@ -1,6 +1,7 @@
  <html> 
     <head> 
-        <title>DCS - 2.1</title> 
+        <meta charset="UTF-8"/>
+        <title>DCS - 2.1</title>
     </head>
 
     <body>
@@ -39,11 +40,11 @@
 
             //Program input
 
-            var radiusX = 0.5;
-            var radiusZ = 0.75;
-            var upSpeed = 1;
-            var numSpirals = 3;
-            var radiusIncrease = 1;
+            var radiusX = 2.5;
+            var radiusZ = 1.5;
+            var upSpeed = 0.5;
+            var numSpirals = 5;
+            var radiusIncrease = 0.5;
             var which_curve = "elliptic_helix";
 
             var pitch, x_radius, z_radius, spiral_radius, n_spirals;
@@ -284,20 +285,20 @@
             <!-- HOW MANY TILES UPWARD PER TURN-->
             <label>Pitch:</label>
             <br>
-            <input type="text" id="pitch" name="pitch" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
+            <input type="text" id="pitch" name="pitch" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.5"/>
             <br>
 
             <!-- NUMBER OF DRAWN SPIRALS-->
             <label>Nº Spirals:</label>
             <br>
-            <input type="text" id="n_spirals" name="n_spirals" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
+            <input type="text" id="n_spirals" name="n_spirals" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="5.0"/>
             <br>
 
             <!-- X RADIUS -->
             <span id="x_radius_block" name="x_radius_block">
                 <label>X Radius:</label>
                 <br>
-                <input type="text" id="x_radius" name="x_radius" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
+                <input type="text" id="x_radius" name="x_radius" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="2.5"/>
                 <br>
             </span>
 
@@ -305,7 +306,7 @@
             <span id="z_radius_block" name="z_radius_block">
                 <label>Z Radius:</label>
                 <br>
-                <input type="text" id="z_radius" name="z_radius" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
+                <input type="text" id="z_radius" name="z_radius" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.5"/>
                 <br>
             </span>
 
@@ -313,7 +314,7 @@
             <span id="spiral_radius_block" name="spiral_radius_block" hidden="hidden">
                 <label>Radius Increase:</label>
                 <br>
-                <input type="text" id="spiral_radius" name="spiral_radius" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="1.0"/>
+                <input type="text" id="spiral_radius" name="spiral_radius" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.5"/>
                 <br>
             </span>
 
