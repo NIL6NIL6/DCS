@@ -28,6 +28,7 @@
     */
 
     var canvas1, context1, points, myTransformation, style, drag = null, draggedPoint;
+    var tolerance = 0.001;
 
     // TODO replace these points but those of the corresponding conic function (on-the-fly)
     points = [{ x:0, y:0 }];
@@ -134,6 +135,138 @@
             ctx.arc(p.x, p.y, style.point.radius, style.point.arc1, style.point.arc2, true);
             ctx.fill();
             ctx.stroke();
+        }
+    }
+    
+    //Draw a vector (passed as two points in space)
+    /*
+    style = {
+        line : {
+            color : "#FCFCFC", / "rgba(200,200,200,0.5)"
+            width : 1
+        },
+        tip : {
+            color : "#FCFCFC",
+            width : 3,
+            length : 10
+            angle : Math.PI / 6
+        }
+    }
+    */
+    function drawVector (ctx, style, vector) {
+        var dx = vector[1].x - vector[0].x;
+        var dy = vector[1].y - vector[0].y;
+        var angle = Math.atan2(dx, dy);
+        
+        //Draw line
+        context.beginPath();
+        context.moveTo(vector[0].x, vector[0].y);
+        context.lineTo(vector[1].x, vector[1].y);
+        context.strokeStyle = style.line.color;
+        context.lineWidth = style.line.width;
+        context.stroke();
+        
+        //Draw tip
+        context.beginPath();
+        context.moveTo( vector[1].x - style.tip.length * Math.cos(angle - style.tip.angle), 
+                        vector[1].y - style.tip.length * Math.sin(angle - style.tip.angle));
+        context.lineTo(vector[1].x, vector[1].y);
+        context.lineTo( vector[1].x - style.tip.length * Math.cos(angle + style.tip.angle), 
+                        vector[1].y - style.tip.length * Math.sin(angle + style.tip.angle));
+        context.strokeStyle = style.tip.color;
+        context.lineWidth = style.tip.width;
+        context.stroke();
+    }
+    
+    // Intersection of two lines. If they are parallel or coincident, returns undefined
+    /*
+    line = {
+        x : 15, //x position of the guide point
+        y : 5,  //y position of the guide point
+        a : Math.PI / 2  //angle of the line (in rad)
+    }
+    */
+    function lineIntersection(line1, line2) {
+        var norm_a1 = line1.a % Math.PI;
+        var norm_a2 = line2.a % Math.PI;
+        if ((Math.max(norm_a1, norm_a2) - Math.min(norm_a1, norm_a2)) < tolerance) return undefined; //Check if parallel or coincident
+        var u1 = Math.cos(line1.a);
+        var v1 = Math.cos(line2.a);
+        var u2 = Math.sin(line1.a);
+        var v2 = Math.sin(line2.a);
+        var numerator = (line1.y - line2.y) * u1 + (line2.x - line1.x) * u2;
+        var denominator = (v2 * u1) - (v1 * u2);
+        var lambda = numerator / denominator;
+        return {
+            x: line2.x + lambda * v1,
+            y: line2.y + lambda * v2
+        }
+    }
+    
+    //Checks if a point is in a segment
+    /*
+    point = {
+        x : 15,
+        y : 5
+    }
+    */
+    function checkInSegment (point, origin, end) {
+        var dy_point = (point.y - origin.y);
+        var dy_end = (end.y - origin.y);
+        var dx_point = (point.x - origin.x);
+        var dx_end = (end.x - origin.x);
+        var dx_dy_1 = dy_point * dx_end;
+        var dx_dy_2 = dy_end * dx_point;
+        return ((Math.max(dx_dy_1, dx_dy_2) - Math.min(dx_dy_1, dx_dy_2)) < tolerance);
+    }
+    
+    //Draw a line that collides with a bounding box (only draw a segment inside a box)
+    /*
+    line = {
+        x : 15,
+        y : 5,
+        a : Math.PI / 2 (rad)
+    }
+    center = {
+        x : 15,
+        y : 5
+    }
+    box = {
+        width = 640,
+        height = 480
+    }
+    */
+    function drawLine (context, center, box, line) {
+        var half_width = box.width / 2;
+        var half_height = box.height / 2;
+
+        var norm_a = line.a % Math.PI;
+        
+        var top_intersect = lineIntersection(line, { x: center.x, y: center.y - half_height, a: 0 });
+        var bot_intersect = lineIntersection(line, { x: center.x, y: center.y + half_height, a:0 });
+        var left_intersect = lineIntersection(line, { x: center.x - half_width, y: center.y, a: Math.PI });
+        var right_intersect = lineIntersection(line, { x: center.x + half_width, y: center.y, a: Math.PI });
+        
+        if ((top_intersect == undefined) || (bot_intersect == undefined)) drawSegment(context, left_intersect, right_intersect);
+        else if ((left_intersect == undefined) || (right_intersect == undefined)) drawSegment(context, top_intersect, bot_intersect);
+        else {
+            var points = [];
+            var top_left = { x: center.x - half_width, y: center.y - half_height };
+            var top_right = { x: center.x + half_width, y: center.y - half_height };
+            var bot_left = { x: center.x - half_width, y: center.y + half_height };
+            var bot_right = { x: center.x + half_width, y: center.y + half_height };
+            if (norm_a < (Math.PI) / 2) {
+                if (checkInSegment(left_intersect, top_left, bot_left)) points.push(left_intersect);
+                else points.push(bot_intersect);
+                if (checkInSegment(top_intersect, top_left, top_right)) points.push(top_intersect);
+                else points.push(right_intersect);
+            } else {
+                if (checkInSegment(left_intersect, top_left, bot_left)) points.push(left_intersect);
+                else points.push(top_intersect);
+                if (checkInSegment(bot_intersect, bot_left, bot_right)) points.push(bot_intersect);
+                else points.push(right_intersect);
+            }
+            drawSegment(context, points[0], points[1]);
         }
     }
 

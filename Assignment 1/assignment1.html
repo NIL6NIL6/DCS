@@ -430,8 +430,8 @@
 
     // Intersection of two lines. If they are parallel or coincident, returns undefined
     function lineIntersection(line1, line2) {
-        var norm_a1 = line1.a % 360;
-        var norm_a2 = line2.a % 360;
+        var norm_a1 = line1.a % 180;
+        var norm_a2 = line2.a % 180;
         if ((Math.max(norm_a1, norm_a2) - Math.min(norm_a1, norm_a2)) < tolerance) return undefined; //Check if parallel or coincident
         var u1 = Math.cos(line1.a);
         var v1 = Math.cos(line2.a);
