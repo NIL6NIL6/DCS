@@ -27,7 +27,8 @@
         * http://blogs.sitepoint.com/html5-canvas-draw-bezier-curves/
     */
 
-    var canvas1, context1, points, myTransformation, style, drag = null, draggedPoint;
+    var canvas1, context1, points, myTransformation, drag = null, draggedPoint;
+    var style, vector_style, line_style, segment_style;
     var tolerance = 0.001;
 
     // TODO replace these points but those of the corresponding conic function (on-the-fly)
@@ -52,7 +53,30 @@
         context1.translate(canvas1.width/2,canvas1.height/2);
 		
 		// Flip y-axis, so it looks like in standard math axes
-		context1.scale(1,-1) // Reversed y-axis
+        context1.scale(1,-1) // Reversed y-axis
+
+        vector_style = {
+            line: {
+                color: "rgba(200, 200, 200, 0.8)",
+                width : 1
+            },
+            tip: {
+                color : "rgba(200,200,200,0.8)",
+                width : 3,
+                length : 10,
+                angle : Math.PI / 6
+            }
+        }
+
+        segment_style = {
+            color : "rgba(50, 230, 175, 0.8)",
+            width : 4
+        }
+
+        line_style = {
+            color : "rgba(180, 35, 95, 0.8)",
+            width : 3
+        }
 
         drawCanvas();
     }
@@ -153,7 +177,7 @@
         }
     }
     */
-    function drawVector (ctx, style, vector) {
+    function drawVector (context, style, vector) {
         var dx = vector[1].x - vector[0].x;
         var dy = vector[1].y - vector[0].y;
         var angle = Math.atan2(dx, dy);
@@ -215,10 +239,34 @@
         var dy_end = (end.y - origin.y);
         var dx_point = (point.x - origin.x);
         var dx_end = (end.x - origin.x);
-        var dx_dy_1 = dy_point * dx_end;
-        var dx_dy_2 = dy_end * dx_point;
+        var dx_dy_1 = dy_point / dx_end;
+        var dx_dy_2 = dy_end / dx_point;
         return ((Math.max(dx_dy_1, dx_dy_2) - Math.min(dx_dy_1, dx_dy_2)) < tolerance);
     }
+
+    //Draw a segment
+    /*
+    style = {
+        color : "#FCFCFC" / "rgba(200, 200, 200, 0.5)",
+        width : 1
+    }
+    point_a = {
+        x : 15,
+        y : 5
+    }
+    point_b = {
+        x : 15,
+        y : 5
+    }
+    */
+   function drawSegment(context, style, point_a, point_b) {
+       context.beginPath();
+       context.moveTo(point_a.x, point_a.y);
+       context.lineTo(point_b.x, point_b.y);
+       context.strokeStyle = style.color;
+       context.lineWidth = style.width;
+       context.stroke();
+   }
     
     //Draw a line that collides with a bounding box (only draw a segment inside a box)
     /*
@@ -236,7 +284,7 @@
         height = 480
     }
     */
-    function drawLine (context, center, box, line) {
+    function drawLine (context, style, center, box, line) {
         var half_width = box.width / 2;
         var half_height = box.height / 2;
 
@@ -244,11 +292,11 @@
         
         var top_intersect = lineIntersection(line, { x: center.x, y: center.y - half_height, a: 0 });
         var bot_intersect = lineIntersection(line, { x: center.x, y: center.y + half_height, a:0 });
-        var left_intersect = lineIntersection(line, { x: center.x - half_width, y: center.y, a: Math.PI });
-        var right_intersect = lineIntersection(line, { x: center.x + half_width, y: center.y, a: Math.PI });
+        var left_intersect = lineIntersection(line, { x: center.x - half_width, y: center.y, a: Math.PI / 2 });
+        var right_intersect = lineIntersection(line, { x: center.x + half_width, y: center.y, a: Math.PI / 2 });
         
-        if ((top_intersect == undefined) || (bot_intersect == undefined)) drawSegment(context, left_intersect, right_intersect);
-        else if ((left_intersect == undefined) || (right_intersect == undefined)) drawSegment(context, top_intersect, bot_intersect);
+        if ((top_intersect == undefined) || (bot_intersect == undefined)) drawSegment(context, style, left_intersect, right_intersect);
+        else if ((left_intersect == undefined) || (right_intersect == undefined)) drawSegment(context, style, top_intersect, bot_intersect);
         else {
             var points = [];
             var top_left = { x: center.x - half_width, y: center.y - half_height };
@@ -266,7 +314,7 @@
                 if (checkInSegment(bot_intersect, bot_left, bot_right)) points.push(bot_intersect);
                 else points.push(right_intersect);
             }
-            drawSegment(context, points[0], points[1]);
+            drawSegment(context, style, points[0], points[1]);
         }
     }
 
@@ -286,7 +334,7 @@
      */
 
 
-    function doReset () {
+    function doReset () { 
         myTransformation = function(p){return p}; //Identity transform
         drawCanvas();
     }
