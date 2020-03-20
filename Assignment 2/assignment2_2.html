@@ -96,6 +96,7 @@
         drawGrid(context1,canvas1.width, canvas1.height); // Draw background grid
 
         // Original points and vertices
+        drawParabola(context1, {color:"rgba(45,45,45,0.8)", width: 3}, {x:0, y:0}, {width:canvas1.width, height:canvas1.height}, 1/200, 0, 0);
         drawCurve(context1, style, points); // Draw curve
         drawVertices(context1, style, points); // Draw vertices as circles
 
@@ -201,6 +202,17 @@
         context.lineWidth = style.tip.width;
         context.stroke();
     }
+
+    /*
+    METHOD OVERRIDE to include a center
+    center = {
+        x : 15,
+        y : 5
+    }
+    */
+   function drawVector (context, style, center, vector) {
+        drawVector(context, style, [{x: vector[0].x - center.x, y: vector[0].y - center.y}, {x: vector[1].x - center.x, y: vector[1].y - center.y}]);
+   }
     
     // Intersection of two lines. If they are parallel or coincident, returns undefined
     /*
@@ -267,6 +279,17 @@
        context.lineWidth = style.width;
        context.stroke();
    }
+
+    /*
+    METHOD OVERRIDE to include a center
+    center = {
+        x : 15,
+        y : 5
+    }
+    */
+   function drawSegment(context, style, center, point_a, point_b) {
+       drawSegment(context, style, {x: point_a.x - center.x, y: point_a.y - center.y}, {x: point_b.x - center.x, y: point_b.y - center.y});
+   }
     
     //Draw a line that collides with a bounding box (only draw a segment inside a box)
     /*
@@ -315,6 +338,53 @@
                 else points.push(right_intersect);
             }
             drawSegment(context, style, points[0], points[1]);
+        }
+    }
+
+    //Draw a parabola
+    /*
+    y = a*x^2 + b*x + c
+    style = {
+        color : "#FCFCFC" / "rgba(200,200,200,0.5)",
+        width : 1
+    }
+    box = {
+        width : 640,
+        height : 480
+    }
+    */
+    function drawParabola(context, style, center, box, a, b, c) {
+        //Calculate the collision points with the margins
+        var init, end;
+        var half_height;
+        if (((a > 0) && (center.y + box.height > c)) || ((a < 0) && (center.y - box.height < c))) { //Check if the parabola begins inside the box's range
+            var aux = Math.sqrt(b*b - 4*a*(c - center.y + ((a > 0) ? - box.height : box.height)/2));
+            end = (-b + aux) / (2*a);
+            init = (-b - aux) / (2*a);
+            if (end < init) {
+                aux = end;
+                end = init;
+                init = aux;
+            }
+        }
+        
+        if (! ((init > (center.x + box.width)) || (end < (center.x - box.width)))) {
+            if (init < (center.x - box.width)) init = center.x - box.width;
+            if (end > (center.x + box.width)) end = center.x + box.width;
+
+            //To cancel any float errors
+            init -= 2;
+            end += 2;
+
+            //Draw every subsection
+            context.beginPath();
+            context.moveTo(init - center.x, a*init*init + b*init + c - center.y);
+            for (var i = Math.floor(init); i < Math.ceil(end); i++) {
+                context.lineTo(i - center.x, a*i*i + b*i + c - center.y);
+            }
+            context.strokeStyle = style.color;
+            context.lineWidth = style.width;
+            context.stroke();
         }
     }
 
