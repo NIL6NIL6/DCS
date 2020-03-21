@@ -84,11 +84,13 @@
     <br/>
     <label>Directrix in <span style="color:#1E90FF">blue</span></label>
     <br/>
-    <label>Symmetry axis in <span style="color:#696969">grey</span></label>
+    <label>Symmetry axis in <span style="color:rgba(80,80,80,1)">dark grey</span></label>
     <br/>
     <label>Tangent line in <span style="color:#8A2BE2">purple</span></label>
     <br/>
     <label>Reflection beams in <span style="color:#B8860B">ochre</span></label>
+    <br/>
+    <label>Reflection axis in <span style="color: rgba(150, 150, 150, 0.3)">light grey</span></label>
 
 </div>
 
@@ -113,7 +115,7 @@
     var center;
     var prevMousePos;
 
-    var tolerance = 0.001;
+    var tolerance = 0.01;
 
     var proj_focus, calc_focus;
 
@@ -210,32 +212,37 @@
         };
 
         x_axis_style = {
-            color: "#FF6347", 
-            width: 1
+            color : "#FF6347", 
+            width : 1
         };
 
         y_axis_style = {
-            color: "#32CD32",
-            width: 1
+            color : "#32CD32",
+            width : 1
         };
 
-        reflection_axis_style = {
-            color: "#696969", 
+        symmetry_axis_style = {
+            color : "#696969", 
             width : 2
         };
 
         directix_style = {
-            color: "#1E90FF", 
+            color : "#1E90FF", 
             width : 2
         };
 
         reflection_beam_style = {
-            color: "#B8860B",
+            color : "#B8860B",
             width : 2
         };
 
         tangent_style = {
             color : "#8A2BE2",
+            width : 2
+        };
+
+        reflection_axis_style = {
+            color : "rgba(150,150,150,0.3)",
             width : 2
         };
     }
@@ -404,7 +411,7 @@
         drawLine(context1, y_axis_style, center, box, {x: 0, y: 0, a: Math.PI / 2});
 
         // Original points and vertices
-        drawLine(context1, reflection_axis_style, center, box, {x: -b / (2*a), y: 0, a: Math.PI / 2});
+        drawLine(context1, symmetry_axis_style, center, box, {x: -b / (2*a), y: 0, a: Math.PI / 2});
         drawLine(context1, directix_style, center, box, {x: 0, y: c - (b*b + 1)/(4*a), a: 0});
         if (showReflections) {
             if (showSixReflections) {
@@ -563,14 +570,14 @@
         }
     }
     
-    //Checks if a point is in a segment
+    //Checks if a point is in a line
     /*
     point = {
         x : 15,
         y : 5
     }
     */
-    function checkInSegment (point, origin, end) {
+    function checkInLine(point, origin, end) {
         var dy_point = (point.y - origin.y);
         var dy_end = (end.y - origin.y);
         var dx_point = (point.x - origin.x);
@@ -578,6 +585,13 @@
         var dx_dy_1 = dy_point / dx_end;
         var dx_dy_2 = dy_end / dx_point;
         return ((Math.max(dx_dy_1, dx_dy_2) - Math.min(dx_dy_1, dx_dy_2)) < tolerance);
+    }
+
+    function checkInSegment(point, origin, end) {
+        var distOriginPoint = Math.sqrt(Math.pow(point.x - origin.x, 2) + Math.pow(point.y - origin.y, 2));
+        var distPointEnd = Math.sqrt(Math.pow(end.x - point.x, 2) + Math.pow(end.y - point.y, 2));
+        var distOriginEnd = Math.sqrt(Math.pow(end.x - origin.x, 2) + Math.pow(end.y - origin.y, 2));
+        return ((Math.max(distOriginPoint + distPointEnd, distOriginEnd) - Math.min(distOriginPoint + distPointEnd, distOriginEnd)) < tolerance);
     }
 
     //Draw a segment
@@ -645,8 +659,8 @@
 
         var norm_a = line.a % Math.PI;
         
-        var top_intersect = lineIntersection(line, { x: center.x, y: center.y - half_height, a: 0 });
-        var bot_intersect = lineIntersection(line, { x: center.x, y: center.y + half_height, a:0 });
+        var top_intersect = lineIntersection(line, { x: center.x, y: center.y + half_height, a: 0 });
+        var bot_intersect = lineIntersection(line, { x: center.x, y: center.y - half_height, a:0 });
         var left_intersect = lineIntersection(line, { x: center.x - half_width, y: center.y, a: Math.PI / 2 });
         var right_intersect = lineIntersection(line, { x: center.x + half_width, y: center.y, a: Math.PI / 2 });
         
@@ -654,20 +668,24 @@
         else if ((left_intersect == undefined) || (right_intersect == undefined)) drawSegmentCentered(context, style, center, top_intersect, bot_intersect);
         else {
             var points = [];
-            var top_left = { x: center.x - half_width, y: center.y - half_height };
-            var top_right = { x: center.x + half_width, y: center.y - half_height };
-            var bot_left = { x: center.x - half_width, y: center.y + half_height };
-            var bot_right = { x: center.x + half_width, y: center.y + half_height };
-            if (norm_a < (Math.PI) / 2) {
+            var top_left = { x: center.x - half_width, y: center.y + half_height };
+            var top_right = { x: center.x + half_width, y: center.y + half_height };
+            var bot_left = { x: center.x - half_width, y: center.y - half_height };
+            var bot_right = { x: center.x + half_width, y: center.y - half_height };
+            if (norm_a < (Math.PI / 2)) {
                 if (checkInSegment(left_intersect, top_left, bot_left)) points.push(left_intersect);
-                else points.push(bot_intersect);
+                else if (checkInSegment(bot_intersect, bot_left, bot_right)) points.push(bot_intersect);
+                else return;
                 if (checkInSegment(top_intersect, top_left, top_right)) points.push(top_intersect);
-                else points.push(right_intersect);
+                else if (checkInSegment(right_intersect, top_right, bot_right)) points.push(right_intersect);
+                else return;
             } else {
                 if (checkInSegment(left_intersect, top_left, bot_left)) points.push(left_intersect);
-                else points.push(top_intersect);
+                else if (checkInSegment(top_intersect, top_left, top_right)) points.push(top_intersect);
+                else return;
                 if (checkInSegment(bot_intersect, bot_left, bot_right)) points.push(bot_intersect);
-                else points.push(right_intersect);
+                else if (checkInSegment(right_intersect, bot_right, top_right)) points.push(right_intersect);
+                else return;
             }
             drawSegmentCentered(context, style, center, points[0], points[1]);
         }
@@ -733,7 +751,9 @@
         //Calculate and draw tangent
         var tangentSlope = 2*a*x + b; //Calculate the paravola's derivative
         var angle = Math.atan2(tangentSlope, 1); //Calculate the angle of the derivative's guide vector
-        drawLine(context, tangent_style, center, box, {x:x, y:y, a:angle}); //Draw the derivative line in that point
+        if (!showSixReflections) drawLine(context, tangent_style, center, box, {x:x, y:y, a:angle}); //Draw the derivative line in that point
+
+        if (!showSixReflections) drawLine(context, reflection_axis_style, center, box, {x:x, y:y, a:Math.PI/2 + angle}); //Draw the reflection axis, perpendicular to the derivative
 
         //Calculate and draw the reflection of the falling beam with tangent to find the line that intersected with the parabola's symmetry axis yields the focus
         var reflectedAngle = Math.PI - (Math.PI/2 - angle) + angle; //The angle between the vertical segment (Math.PI/2) and the derivative's angle must be the same as the reflection with the derivative

@@ -112,7 +112,7 @@
 			// TODO: replace this by the right parametrization
 			//Initialize point at the center of coordinates
 			currentPoint = {x: 0, y: 0}; 
-			//Translate the point as much as the circle has rotated
+			//Translate the point as much as how much the circle has rotated, which is relative to the perimeter of the circle
 			currentPoint.x = currentPoint.x + i*radius;
 			//Elevate the point to the center of the circle
 			currentPoint.y = currentPoint.y - radius;
@@ -129,6 +129,13 @@
 			
             ctx.lineTo(currentPoint.x, currentPoint.y);
             ctx.moveTo(currentPoint.x, currentPoint.y);
+
+            /*
+            I came up with this solution quickly, it was quite similar to the cardioid we had already done
+            My solution to the cardioid involved almost the same steps, but instead of rotating around a circle in the first part,
+            this formula advances as much as how much of the perimeter it has rotated around, and then applies the 
+            cosine/sine translation from being at the edge of the circle
+            */
         }
         ctx.stroke();
 		
