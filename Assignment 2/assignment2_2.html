@@ -67,7 +67,7 @@
     <label>)</label>
     <br/>
 
-    <label>Projected Focus</label>
+    <label>Reflected Focus</label>
     <br/>
     <label>(</label>
     <label id="proj_focus_x"></label>
@@ -709,22 +709,21 @@
         var projecting_y, y;
         
         //Falling beam
-        if (a > 0) projecting_y = center.y + box.height/2;
-        else projecting_y = center.y - box.height/2;
+        if (a > 0) projecting_y = center.y + box.height/2; //If it has U shape, come from above
+        else projecting_y = center.y - box.height/2; //If not, come from below
 
         y = a*x*x + b*x + c;
-        drawSegmentCentered(context, style, center, {x:x, y:projecting_y}, {x:x, y:y});
+        drawSegmentCentered(context, style, center, {x:x, y:projecting_y}, {x:x, y:y}); //Join top/bottom with the parabola using a segment
 
         //Calculate and draw tangent
-        var tangentSlope = 2*a*x + b;
-        var angle = Math.atan2(tangentSlope, 1);
-        drawLine(context, tangent_style, center, box, {x:x, y:y, a:angle});
+        var tangentSlope = 2*a*x + b; //Calculate the paravola's derivative
+        var angle = Math.atan2(tangentSlope, 1); //Calculate the angle of the derivative's guide vector
+        drawLine(context, tangent_style, center, box, {x:x, y:y, a:angle}); //Draw the derivative line in that point
 
-        //Calculate and draw reflection on tangent
-        var reflectedAngle = Math.PI - (Math.PI/2 - angle) + angle;
-        //drawLine(context, style, center, box, {x:x, y:y, a:reflectedAngle});
-        proj_focus = lineIntersection({x: -b / (2*a), y:0, a:Math.PI / 2}, {x:x, y:y, a:reflectedAngle});
-        if (!(proj_focus == undefined)) drawSegmentCentered(context, style, center, {x:x, y:y}, proj_focus);
+        //Calculate and draw the reflection of the falling beam with tangent to find the line that intersected with the parabola's symmetry axis yields the focus
+        var reflectedAngle = Math.PI - (Math.PI/2 - angle) + angle; //The angle between the vertical segment (Math.PI/2) and the derivative's angle must be the same as the reflection with the derivative
+        proj_focus = lineIntersection({x: -b / (2*a), y:0, a:Math.PI / 2}, {x:x, y:y, a:reflectedAngle}); //Intersect the reflected line with the parabola's symmetry axis to calculate the focus
+        if (!(proj_focus == undefined)) drawSegmentCentered(context, style, center, {x:x, y:y}, proj_focus); //If the reflected line isn't vertical, draw the segment from the parabola to the focus
     }
 
 
