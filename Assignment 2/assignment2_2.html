@@ -13,11 +13,69 @@
 
 <h1>DCS - 2.2 Properties of conics</h1>
 
-<canvas id="canvas1" height="600" width="600" class="bezier"  style="border:1px solid #d3d3d3;"></canvas>
-<br>
-<button type="button" onclick="doReset()">Reset</button>
-<button type="button" onclick="computeConic()">Draw some conic</button>
+<canvas id="canvas1" height="600" width="600" class="bezier"  style="border:1px solid #d3d3d3; float:left; margin-right: 5px"></canvas>
+<br/>
 
+<div>
+    <button type="button" onclick="doReset()">Reset position</button>
+    <br/>
+    <br/>
+
+    <!-- PARABOLA PARAMETERS -->
+    <label>Parabola's parameters (y = a*x^2 + b*x + c)</label>
+    <br/>
+
+    <span id="a_param_block" name="a_param_block">
+        <label>a: </label>
+        <input type="text" id="a_param" name="a_param" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0.005"/>
+        <label> Important! a != 0</label>
+        <br/>
+    </span>
+
+    <span id="b_param_block" name="b_param_block">
+        <label>b: </label>
+        <input type="text" id="b_param" name="b_param" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0"/>
+        <br/>
+    </span>
+
+    <span id="c_param_block" name="c_param_block">
+        <label>c: </label>
+        <input type="text" id="c_param" name="c_param" pattern="[-+]?([0-9]*\.[0-9]+|[0-9]+)" value="0"/>
+        <br/>
+    </span>
+
+    <br/>
+    <!-- REFECTION BEAM -->
+    <label>Reflection Point</label>
+    <input type="checkbox" checked="checked" id="show_reflections"/>
+    <label>Show</label>
+    <br/>
+    <input type="range" min="-500" max="500" value="0.0" class="slider" id="reflection_point"/>
+    <br/>
+    <input type="checkbox" id="show_six_lines"/>
+    <label>Show 6 reflections</label>
+    <br/>
+    <br/>
+
+    <!-- FOCUS POINT -->
+    <label>Calculated Focus</label>
+    <br/>
+    <label>(</label>
+    <label id="calc_focus_x"></label>
+    <label>,</label>
+    <label id="calc_focus_y"></label>
+    <label>)</label>
+    <br/>
+
+    <label>Projected Focus</label>
+    <br/>
+    <label>(</label>
+    <label id="proj_focus_x"></label>
+    <label>,</label>
+    <label id="proj_focus_y"></label>
+    <label>)</label>
+
+</div>
 
 <script type="text/javascript">
 
@@ -27,9 +85,27 @@
         * http://blogs.sitepoint.com/html5-canvas-draw-bezier-curves/
     */
 
+    //GLOBAL VARIABLES
+
+    var floatRegExp = RegExp('^[+-]?([0-9]*\.[0-9]+|[0-9]+)$');
+
     var canvas1, context1, points, myTransformation, drag = null, draggedPoint;
-    var style, vector_style, line_style, segment_style;
+
+    var style, vector_style, line_style, segment_style, parabola_style;
+    var tangent_style, reflection_beam_style, directix_style, x_axis_style, y_axis_style, reflection_axis_style;
+
+    var a, b, c;
+    var center;
+    var prevMousePos;
+
     var tolerance = 0.001;
+
+    var proj_focus, calc_focus;
+
+    var showReflections, showSixReflections;
+    var reflection_val;
+    var html_a, html_b, html_c, html_reflection, html_show_reflections, html_show_6_reflections;
+    var html_calc_focus_x, html_calc_focus_y, html_proj_focus_x, html_proj_focus_y;
 
     // TODO replace these points but those of the corresponding conic function (on-the-fly)
     points = [{ x:0, y:0 }];
@@ -55,6 +131,41 @@
 		// Flip y-axis, so it looks like in standard math axes
         context1.scale(1,-1) // Reversed y-axis
 
+        //Set the canvas' center
+        prevMousePos = center = {
+            x : 0,
+            y : 0
+        }
+
+        //Set the parabola's parameters
+        a = 1 / 200;
+        b = 0;
+        c = 0;
+        
+        proj_focus = undefined;
+
+        //Which reflections are shown
+        showReflections = true;
+        showSixReflections = false;
+        reflection_val = 0;
+
+        //Make the canvas movable
+        canvas1.onmousedown = dragStart;
+        canvas1.onmousemove = dragging;
+        canvas1.onmouseup = canvas1.onmouseout = dragEnd;
+
+        //Define styles for all possible drawings
+        defineStyles();
+
+        //Interact with HTML
+        htmlInteractions();
+
+        drawCanvas();
+        changeFocus();
+    }
+
+    //Define styles for the program
+    function defineStyles() {
         vector_style = {
             line: {
                 color: "rgba(200, 200, 200, 0.8)",
@@ -66,21 +177,193 @@
                 length : 10,
                 angle : Math.PI / 6
             }
-        }
+        };
 
         segment_style = {
             color : "rgba(50, 230, 175, 0.8)",
             width : 4
-        }
+        };
 
         line_style = {
             color : "rgba(180, 35, 95, 0.8)",
             width : 3
-        }
+        };
 
-        drawCanvas();
+        parabola_style = {
+            color : "rgba(80, 80, 80, 1)",
+            width : 2
+        };
+
+        x_axis_style = {
+            color: "#FF6347", 
+            width: 1
+        };
+
+        y_axis_style = {
+            color: "#32CD32",
+            width: 1
+        };
+
+        reflection_axis_style = {
+            color: "rgba(150, 150, 150, 1)", 
+            width : 2
+        };
+
+        directix_style = {
+            color: "#1E90FF", 
+            width : 2
+        };
+
+        reflection_beam_style = {
+            color: "#B8860B",
+            width : 2
+        };
+
+        tangent_style = {
+            color : "#8A2BE2",
+            width : 2
+        };
     }
 
+    function getAndTestInput(regex, inputArray) {
+        var data = []
+        var correct = true;
+        for (let i = 0; i < inputArray.length; i++) {
+            var x = document.getElementById(inputArray[i]).value;
+            if (! regex.test(x)) {
+                document.getElementById(inputArray[i]).color = "red";
+                correct = false;
+            }
+            else document.getElementById(inputArray[i]).color = "black";
+            data.push(x);
+        }
+        return {data: data, correct: correct}
+    }
+
+    function htmlInteractions() {
+        //A PARAMETER
+        html_a = document.getElementById("a_param");
+        html_a.onchange = function() {
+            var input = getAndTestInput(floatRegExp, ["a_param"]);
+            if (input.correct) {
+                a = parseFloat(input.data[0]);
+            }
+            drawCanvas();
+            changeFocus();
+        };
+        html_a.value = a;
+
+        //B PARAMETER
+        html_b = document.getElementById("b_param");
+        html_b.onchange = function() {
+            var input = getAndTestInput(floatRegExp, ["b_param"]);
+            if (input.correct) {
+                b = parseFloat(input.data[0]);
+            }
+            drawCanvas();
+            changeFocus();
+        }
+        html_b.value = b;
+
+        //C PARAMETER
+        html_c = document.getElementById("c_param");
+        html_c.onchange = function() {
+            var input = getAndTestInput(floatRegExp, ["c_param"]);
+            if (input.correct) {
+                c = parseFloat(input.data[0]);
+            }
+            drawCanvas();
+            changeFocus();
+        }
+        html_c.value = c;
+
+        //Show Reflection Beams?
+        html_show_reflections = document.getElementById("show_reflections");
+        html_show_reflections.onchange = function() {
+            showReflections = !showReflections;
+            drawCanvas();
+        }
+        html_show_reflections.checked = showReflections;
+
+        //Show 6 pre-chosen beams?
+        html_show_6_reflections = document.getElementById("show_six_lines");
+        html_show_6_reflections.onchange = function() {
+            showSixReflections = !showSixReflections;
+            drawCanvas();
+        }
+        html_show_6_reflections.checked = showSixReflections;
+
+        //Beam X Position
+        html_reflection = document.getElementById("reflection_point");
+        html_reflection.oninput = function() {
+            reflection_val = parseFloat(html_reflection.value) / 1000;
+            if ((showReflections) && (! showSixReflections)) drawCanvas();
+        }
+        html_reflection.value = 0;
+
+        //Focus
+        html_calc_focus_x = document.getElementById("calc_focus_x");
+        html_calc_focus_y = document.getElementById("calc_focus_y");
+        html_proj_focus_x = document.getElementById("proj_focus_x");
+        html_proj_focus_y = document.getElementById("proj_focus_y");
+    }
+
+    function changeFocus() {
+        var x = -b / (2*a);
+        calc_point = {
+            x : x,
+            y : 2*(a*x*x + b*x + c) - (c - (b*b + 1)/(4*a))
+        }
+        html_calc_focus_x.innerHTML = calc_point.x;
+        html_calc_focus_y.innerHTML = calc_point.y;
+        
+        if (proj_focus == undefined) {
+            html_proj_focus_x.innerHTML = "ERROR";
+            html_proj_focus_y.innerHTML = "ERROR";
+        } else {
+            html_proj_focus_x.innerHTML = proj_focus.x;
+            html_proj_focus_y.innerHTML = proj_focus.y;
+        }
+    }
+
+    /**
+     Methods to allow dragging the view around
+     **/
+
+    // start dragging
+    function dragStart(e) {
+        prevMousePos = mousePos(e);
+        drag = true;
+    }
+
+    // dragging
+    function dragging(e) {
+        if (drag) {
+            var currMousePos = mousePos(e);
+            canvas1.style.cursor = "move";
+            center = {
+                x : center.x + (prevMousePos.x - currMousePos.x),
+                y : center.y - (prevMousePos.y - currMousePos.y)
+            };
+            prevMousePos = currMousePos;
+            drawCanvas();
+        }
+    }
+
+    // end dragging
+    function dragEnd(e) {
+        drag = false;
+        canvas1.style.cursor = "default";
+    }
+
+    // event parser
+    function mousePos(event) {
+        event = (event ? event : window.event);
+        return {
+            x: event.pageX - canvas1.offsetLeft,
+            y: event.pageY - canvas1.offsetTop
+        }
+    }
 
     /**
      Basic drawing methods
@@ -90,16 +373,37 @@
     // draw canvas
     function drawCanvas() {
         // Clear everything
-        context1.clearRect(0, 0, canvas1.width, canvas1.height);  // Clear canvas
+        context1.clearRect(-canvas1.width / 2, -canvas1.height / 2, canvas1.width, canvas1.height);  // Clear canvas
+        context1.clearRect(-canvas1.width / 2, -canvas1.height / 2, canvas1.width, canvas1.height);  // Clear canvas
 
         // Background grids
         drawGrid(context1,canvas1.width, canvas1.height); // Draw background grid
 
-        // Original points and vertices
-        drawParabola(context1, {color:"rgba(45,45,45,0.8)", width: 3}, {x:0, y:0}, {width:canvas1.width, height:canvas1.height}, 1/200, 0, 0);
-        drawCurve(context1, style, points); // Draw curve
-        drawVertices(context1, style, points); // Draw vertices as circles
+        var box = {
+            width : canvas1.width,
+            height : canvas1.height
+        };
 
+        // Draw axis
+        drawLine(context1, x_axis_style, center, box, {x: 0, y: 0, a: 0});
+        drawLine(context1, y_axis_style, center, box, {x: 0, y: 0, a: Math.PI / 2});
+
+        // Original points and vertices
+        drawLine(context1, reflection_axis_style, center, box, {x: -b / (2*a), y: 0, a: Math.PI / 2});
+        drawLine(context1, directix_style, center, box, {x: 0, y: c - (b*b + 1)/(4*a), a: 0});
+        if (showReflections) {
+            if (showSixReflections) {
+                for (var i = 50; i <= 150; i+=50) {
+                    drawReflection(context1, reflection_beam_style, center, box, (-b / (2*a)) + i, a, b, c);
+                    drawReflection(context1, reflection_beam_style, center, box, (-b / (2*a)) - i, a, b, c);
+                }
+            }
+            else {
+                drawReflection(context1, reflection_beam_style, center, box, center.x + reflection_val * box.width, a, b, c);
+            }
+        }
+        drawParabola(context1, parabola_style, center, box, a, b, c);
+        changeFocus();
     }
 
 
@@ -122,9 +426,6 @@
         myContext.lineWidth = 1;
         myContext.strokeStyle = "lightgray";
         myContext.stroke();
-
-   
-
     }
 
     // Draws a polygonal curve connecting the points, after applying the given transformation
@@ -150,7 +451,7 @@
     }
 
     // Draw circles around vertices to facilitate drag and drop
-    function drawVertices (ctx, style, points) {
+    function drawVertices(ctx, style, points) {
         for (var i = 0; i < points.length; i++) {
             var p = points[i];
             ctx.lineWidth = style.point.width;
@@ -178,7 +479,7 @@
         }
     }
     */
-    function drawVector (context, style, vector) {
+    function drawVector(context, style, vector) {
         var dx = vector[1].x - vector[0].x;
         var dy = vector[1].y - vector[0].y;
         var angle = Math.atan2(dx, dy);
@@ -210,8 +511,16 @@
         y : 5
     }
     */
-   function drawVector (context, style, center, vector) {
-        drawVector(context, style, [{x: vector[0].x - center.x, y: vector[0].y - center.y}, {x: vector[1].x - center.x, y: vector[1].y - center.y}]);
+   function drawVectorCentered(context, style, center, vector) {
+       var point_a_corrected = {
+           x : vector[0].x - center.x,
+           y : vector[0].y - center.y
+       };
+       var point_b_corrected = {
+           x : vector[1].x - center.x,
+           y : vector[1].y - center.y
+       };
+        drawVector(context, style, [point_a_corrected, point_b_corrected]);
    }
     
     // Intersection of two lines. If they are parallel or coincident, returns undefined
@@ -287,8 +596,16 @@
         y : 5
     }
     */
-   function drawSegment(context, style, center, point_a, point_b) {
-       drawSegment(context, style, {x: point_a.x - center.x, y: point_a.y - center.y}, {x: point_b.x - center.x, y: point_b.y - center.y});
+   function drawSegmentCentered(context, style, center, point_a, point_b) {
+       var point_a_corrected = {
+           x : point_a.x - center.x,
+           y : point_a.y - center.y
+       };
+       var point_b_corrected = {
+           x : point_b.x - center.x,
+           y : point_b.y - center.y
+       }
+       drawSegment(context, style, point_a_corrected, point_b_corrected);
    }
     
     //Draw a line that collides with a bounding box (only draw a segment inside a box)
@@ -318,8 +635,8 @@
         var left_intersect = lineIntersection(line, { x: center.x - half_width, y: center.y, a: Math.PI / 2 });
         var right_intersect = lineIntersection(line, { x: center.x + half_width, y: center.y, a: Math.PI / 2 });
         
-        if ((top_intersect == undefined) || (bot_intersect == undefined)) drawSegment(context, style, left_intersect, right_intersect);
-        else if ((left_intersect == undefined) || (right_intersect == undefined)) drawSegment(context, style, top_intersect, bot_intersect);
+        if ((top_intersect == undefined) || (bot_intersect == undefined)) drawSegmentCentered(context, style, center, left_intersect, right_intersect);
+        else if ((left_intersect == undefined) || (right_intersect == undefined)) drawSegmentCentered(context, style, center, top_intersect, bot_intersect);
         else {
             var points = [];
             var top_left = { x: center.x - half_width, y: center.y - half_height };
@@ -337,7 +654,7 @@
                 if (checkInSegment(bot_intersect, bot_left, bot_right)) points.push(bot_intersect);
                 else points.push(right_intersect);
             }
-            drawSegment(context, style, points[0], points[1]);
+            drawSegmentCentered(context, style, center, points[0], points[1]);
         }
     }
 
@@ -388,6 +705,28 @@
         }
     }
 
+    function drawReflection(context, style, center, box, x, a, b, c) {
+        var projecting_y, y;
+        
+        //Falling beam
+        if (a > 0) projecting_y = center.y + box.height/2;
+        else projecting_y = center.y - box.height/2;
+
+        y = a*x*x + b*x + c;
+        drawSegmentCentered(context, style, center, {x:x, y:projecting_y}, {x:x, y:y});
+
+        //Calculate and draw tangent
+        var tangentSlope = 2*a*x + b;
+        var angle = Math.atan2(tangentSlope, 1);
+        drawLine(context, tangent_style, center, box, {x:x, y:y, a:angle});
+
+        //Calculate and draw reflection on tangent
+        var reflectedAngle = Math.PI - (Math.PI/2 - angle) + angle;
+        //drawLine(context, style, center, box, {x:x, y:y, a:reflectedAngle});
+        proj_focus = lineIntersection({x: -b / (2*a), y:0, a:Math.PI / 2}, {x:x, y:y, a:reflectedAngle});
+        if (!(proj_focus == undefined)) drawSegmentCentered(context, style, center, {x:x, y:y}, proj_focus);
+    }
+
 
     /**
      * Start ("main method")
@@ -406,6 +745,10 @@
 
     function doReset () { 
         myTransformation = function(p){return p}; //Identity transform
+        center = {
+            x : 0,
+            y : 0
+        }
         drawCanvas();
     }
 
